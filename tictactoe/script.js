@@ -1,107 +1,113 @@
-const dialog = document.getElementById('dialog');
-const continueBtn = document.getElementById('continue');
-const boxes = document.querySelectorAll('.box');
-
-
+const cells = document.querySelectorAll(".cell");
+const statusText = document.querySelector("#statusText");
+const restartBtn = document.querySelector("#restartBtn");
+const dialog = document.getElementById("dialog");
+const confirmBtn = document.getElementById('confirm');
+let playerName;
 
 dialog.showModal();
 
-const GameBoard = (() => {
-    const board = ["", "", "", "", "", "", "", "", ""];
-    return {board};
-})();
+const winConditions = [
+    [0,1,2],
+    [3,4,5],
+    [6,7,8],
+    [0,3,6],
+    [1,4,7],
+    [2,5,8],
+    [0,4,8],
+    [2,4,6]
+];
 
-const Player = (name, maker) => {
-    return {name, maker};
-};
+let options = ["", "", "", "", "", "", "", "", ""];
 
-const GameController = (() => {
-    let player1;
-    let player2;
-    let currentPlayer;
-    let hasWin = false;
+let currentPlayer = "X";
+let running = false;
 
-    const winningCombos = [
-        [0, 1, 2], 
-        [3, 4, 5], 
-        [6, 7, 8], 
-        [0, 3, 6], 
-        [1, 4, 7], 
-        [2, 5, 8], 
-        [0, 4, 8], 
-        [2, 4, 6]
-    ];
+function Player(playerOne, playerTwo){
+    this.playerOne = playerOne;
+    this.playerTwo = playerTwo;
+}
 
-    const addPlayers = (name1, name2) => {
-        player1 = Player(name1, "X");
-        player2 = Player(name2, "O");
-        currentPlayer = player1;
-    };
+function addPlayer(playerOne, playerTwo){
+    const player = new Player(playerOne, playerTwo);
+    return player;
+}
 
-    const playRound = (index) => {
-        // 1. Check if the selected index in Gameboard.board is empty
-        if(GameBoard.board[index] === ""){
-            GameBoard.board[index] = currentPlayer.maker;
-        } else{
-            alert("Box is Filled");
-            return;
+function initializeGame(){
+    
+    cells.forEach((cell) => cell.addEventListener('click', cellClicked));
+    restartBtn.addEventListener('click', restartGame);
+    statusText.textContent = `${playerName.playerOne}'s Turn`;
+    running = true;
+}
+
+function cellClicked(){
+    const cellIndex = this.getAttribute("cellIndex");
+
+    if(options[cellIndex] != "" || !running){
+        return
+    } 
+
+    updateCell(this, cellIndex);
+    checkWinner();
+}
+
+function updateCell(cell, index){
+    options[index] = currentPlayer;
+    cell.textContent = currentPlayer;
+}
+
+function changePlayer(){
+    currentPlayer = (currentPlayer === "X") ? "O" : "X";
+    statusText.textContent = `${(currentPlayer === "X") ? playerName.playerOne : playerName.playerTwo}'s Turn`;
+    
+}
+
+function checkWinner(){
+    let roundWon = false;
+
+    for(let i = 0; i<winConditions.length; i++){
+        const condition = winConditions[i]; 
+        const cellA = options[condition[0]];
+        const cellB = options[condition[1]];
+        const cellC = options[condition[2]];
+
+        if(cellA == "" || cellB == "" || cellC == ""){
+            continue;
         }
-        // 2. If yes, set the marker ("X" or "O") at that index
-        // 3. Check for winner
-        checkWinner();
-        // 4. Check for tie
-        if(!hasWin){
-            checkTie();
+        if(cellA == cellB && cellB == cellC){
+            roundWon = true;
+            break;
         }
-        
-        // 5. Switch current player
-        switchPlayer();
-    };
+    }
 
-    const switchPlayer = () => {
-        // If currentPlayer is player1, switch to player2. Otherwise, switch back.
-        if(currentPlayer === player1){
-            currentPlayer = player2;
-        } else{
-            currentPlayer = player1;
-        }
-    };
+    if(roundWon){
+        statusText.textContent = `${(currentPlayer.includes("X") ? playerName.playerOne : playerName.playerTwo)} wins!`;
+        running = false;
+    } else if(!options.includes("")){
+        statusText.textContent = `Draw!`;
+        running = false;
+    } else{
+        changePlayer();
+    }
 
-    const checkWinner = () => {
-        // 1. Check all winning combinations (rows, columns, diagonals)
-        winningCombos.forEach((combo) => {
-            const [a, b, c] = combo;
+}
 
-            if(GameBoard.board[a] !== "" && GameBoard.board[a] === GameBoard.board[b] && GameBoard.board[a] === GameBoard.board[c]){
-                hasWin = true;
-                console.log("winner", currentPlayer.name);
-            }
+function restartGame(){
+    currentPlayer = "X";
+    options = ["", "", "", "", "", "", "", "", ""];
+    dialog.showModal();
+    statusText.textContent = `${playerName.playerOne}'s Turn`;
+    cells.forEach(cell => cell.textContent = "");
+    running = true;
+    
+}
 
-           
-        }); 
-        
-        if(hasWin){
-            console.log("Game Over!");
-        }
-        // 2. If the current player has 3 in a row, announce the winner
-    };
-
-    const checkTie = () => {
-        const isBoardFull = GameBoard.board.every(cell => cell !== "");
-
-        if(isBoardFull){
-            console.log("Game Over Tie");
-        }
-    };
-
-    return {addPlayers, playRound};
-})();
-
-continueBtn.addEventListener('click', () =>{
-    const playerOne = document.querySelector('#player-one').value;
-    const playerTwo = document.querySelector('#player-two').value;
-    GameController.addPlayers(playerOne, playerTwo);
+confirmBtn.addEventListener('click', (e) => {
+    e.preventDefault();
+    const playerOne = document.querySelector("#playerOne").value;
+    const playerTwo = document.querySelector("#playerTwo").value;
+    playerName = addPlayer(playerOne, playerTwo);
+    initializeGame();
     dialog.close();
 });
-
-GameController.playRound(0);
